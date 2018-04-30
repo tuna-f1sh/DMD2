@@ -18,7 +18,6 @@
  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "DMD2.h"
-#include <digitalWriteFast.h>
 
 // Port registers are same size as a pointer (16-bit on AVR, 32-bit on ARM)
 typedef intptr_t port_reg_t;
@@ -82,9 +81,12 @@ void BaseDMD::scanDisplay()
 
   writeSPIData(rows, rowsize);
 
-  digitalWriteFast(9, LOW);
-  digitalWriteFast(3, HIGH); // Latch DMD shift register output
-  digitalWriteFast(3, LOW); // (Deliberately left as digitalWrite to ensure decent latching time)
+  /* digitalWriteFast(9, LOW); */
+  /* digitalWriteFast(3, HIGH); // Latch DMD shift register output */
+  /* digitalWriteFast(3, LOW); // (Deliberately left as digitalWrite to ensure decent latching time) */
+  PORTB &= ~_BV(PB1); // 9
+  PORTD |= _BV(PD3);
+  PORTD &= ~_BV(PD3);
 
   // Digital outputs A, B are a 2-bit selector output, set from the scan_row variable (loops over 0-3),
   // that determines which set of interleaved rows we are outputting during this pass.
@@ -106,7 +108,8 @@ void BaseDMD::scanDisplay()
 
   // Output enable pin is either fixed on, or PWMed for a variable brightness display
   if(brightness == 255) {
-    digitalWriteFast(9, HIGH);
+    /* digitalWriteFast(9, HIGH); */
+    PORTB |= _BV(PB1); // 9
   } else {
     analogWrite(pin_noe, brightness);
   }
