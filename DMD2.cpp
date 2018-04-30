@@ -18,6 +18,7 @@
  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "DMD2.h"
+#include <digitalWriteFast.h>
 
 // Port registers are same size as a pointer (16-bit on AVR, 32-bit on ARM)
 typedef intptr_t port_reg_t;
@@ -81,9 +82,9 @@ void BaseDMD::scanDisplay()
 
   writeSPIData(rows, rowsize);
 
-  digitalWrite(pin_noe, LOW);
-  digitalWrite(pin_sck, HIGH); // Latch DMD shift register output
-  digitalWrite(pin_sck, LOW); // (Deliberately left as digitalWrite to ensure decent latching time)
+  digitalWriteFast(9, LOW);
+  digitalWriteFast(3, HIGH); // Latch DMD shift register output
+  digitalWriteFast(3, LOW); // (Deliberately left as digitalWrite to ensure decent latching time)
 
   // Digital outputs A, B are a 2-bit selector output, set from the scan_row variable (loops over 0-3),
   // that determines which set of interleaved rows we are outputting during this pass.
@@ -91,15 +92,24 @@ void BaseDMD::scanDisplay()
   // BA 1 (01) = 2,6,10,14
   // BA 2 (10) = 3,7,11,15
   // BA 3 (11) = 4,8,12,16
-  digitalWrite(pin_a, scan_row & 0x01);
-  digitalWrite(pin_b, scan_row & 0x02);
+  if (scan_row & 0x01)
+    PORTD |= _BV(PD6);
+  else
+    PORTD &= ~_BV(PD6);
+
+  if (scan_row & 0x02)
+    PORTD |= _BV(PD7);
+  else
+    PORTD &= ~_BV(PD7);
+
   scan_row = (scan_row + 1) % 4;
 
   // Output enable pin is either fixed on, or PWMed for a variable brightness display
-  if(brightness == 255)
-    digitalWrite(pin_noe, HIGH);
-  else
+  if(brightness == 255) {
+    digitalWriteFast(9, HIGH);
+  } else {
     analogWrite(pin_noe, brightness);
+  }
 }
 
 #ifdef ESP8266
